@@ -1,6 +1,7 @@
 import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { MermaidReactFlowView } from './MermaidReactFlowView';
 import { SavedPositions } from './positionStorage';
+import { MermaidReactFlowSettingTab } from './settings';
 import './styles.css';
 
 const VIEW_TYPE_MERMAID_REACTFLOW = 'mermaid-reactflow-view';
@@ -48,6 +49,9 @@ export default class MermaidReactFlowPlugin extends Plugin {
         this.activateView();
       },
     });
+
+    // Add settings tab
+    this.addSettingTab(new MermaidReactFlowSettingTab(this.app, this));
   }
 
   async activateView() {
