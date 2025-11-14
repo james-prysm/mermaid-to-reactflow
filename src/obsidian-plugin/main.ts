@@ -249,13 +249,32 @@ export default class MermaidReactFlowPlugin extends Plugin {
       const activeFile = this.app.workspace.getActiveFile();
       const sourcePath = filePathAttr || activeFile?.path || '';
 
+      // Calculate block index in reading mode
+      const allCodeBlocks = document.querySelectorAll('code.language-mermaid');
+      let blockIndex = 0;
+      for (let i = 0; i < allCodeBlocks.length; i++) {
+        const code = allCodeBlocks[i].textContent?.trim() || '';
+        const isSupported = code.startsWith('graph ') ||
+                           code.startsWith('flowchart ') ||
+                           code.startsWith('sequenceDiagram') ||
+                           /^graph\s+(TD|TB|BT|RL|LR)/i.test(code) ||
+                           /^flowchart\s+(TD|TB|BT|RL|LR)/i.test(code);
+
+        if (allCodeBlocks[i] === codeEl) {
+          break;
+        }
+        if (isSupported) {
+          blockIndex++;
+        }
+      }
+
       await this.activateView();
 
       const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_MERMAID_REACTFLOW);
       if (leaves.length > 0) {
         const view = leaves[0].view;
         if (view instanceof MermaidReactFlowView) {
-          view.setMermaidCode(source, sourcePath);
+          view.setMermaidCode(source, sourcePath, blockIndex);
         }
       }
     });
@@ -354,7 +373,7 @@ export default class MermaidReactFlowPlugin extends Plugin {
       if (leaves.length > 0) {
         const view = leaves[0].view;
         if (view instanceof MermaidReactFlowView) {
-          view.setMermaidCode(source, sourcePath);
+          view.setMermaidCode(source, sourcePath, blockIndex);
         }
       }
     });

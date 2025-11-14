@@ -10,6 +10,7 @@ export class MermaidReactFlowView extends ItemView {
   private root: Root | null = null;
   private mermaidCode: string = '';
   private sourceFilePath: string = '';
+  private blockIndex: number = 0; // Track which mermaid block in the file
   private plugin: MermaidReactFlowPlugin;
   private theme: Theme = 'light';
   private themeObserver: MutationObserver | null = null;
@@ -83,11 +84,12 @@ export class MermaidReactFlowView extends ItemView {
     });
   }
 
-  setMermaidCode(code: string, sourceFilePath?: string) {
+  setMermaidCode(code: string, sourceFilePath?: string, blockIndex?: number) {
     this.mermaidCode = code;
 
     if (sourceFilePath) {
       this.sourceFilePath = sourceFilePath;
+      this.blockIndex = blockIndex ?? 0;
       this.setupFileWatcher();
     }
 
@@ -126,40 +128,33 @@ export class MermaidReactFlowView extends ItemView {
     try {
       const content = await this.plugin.app.vault.read(file as any);
 
-      // Extract mermaid code blocks from the file
+      // Extract all mermaid code blocks from the file
       const mermaidRegex = /```mermaid\n([\s\S]*?)```/g;
       const matches = [...content.matchAll(mermaidRegex)];
 
-      // Find the matching mermaid block (by content similarity)
-      const currentCode = this.mermaidCode.trim();
-      for (const match of matches) {
-        const blockCode = match[1].trim();
+      // Filter to only supported diagrams
+      const supportedDiagrams = matches.filter(match => {
+        const code = match[1].trim();
+        return code.startsWith('graph ') ||
+               code.startsWith('flowchart ') ||
+               code.startsWith('sequenceDiagram') ||
+               /^graph\s+(TD|TB|BT|RL|LR)/i.test(code) ||
+               /^flowchart\s+(TD|TB|BT|RL|LR)/i.test(code);
+      });
 
-        // Check if this is a supported diagram type
-        const isSupportedDiagram = blockCode.startsWith('graph ') ||
-                                    blockCode.startsWith('flowchart ') ||
-                                    blockCode.startsWith('sequenceDiagram') ||
-                                    blockCode.match(/^graph\s+(TD|TB|BT|RL|LR)/i) ||
-                                    blockCode.match(/^flowchart\s+(TD|TB|BT|RL|LR)/i);
+      // Get the specific block by index
+      if (this.blockIndex >= 0 && this.blockIndex < supportedDiagrams.length) {
+        const newCode = supportedDiagrams[this.blockIndex][1].trim();
 
-        if (isSupportedDiagram && (blockCode === currentCode || this.isSimilar(currentCode, blockCode))) {
-          // Update only if content has changed
-          if (blockCode !== currentCode) {
-            this.mermaidCode = blockCode;
-            this.renderReactFlow();
-          }
-          break;
+        // Always update to the latest content
+        if (newCode !== this.mermaidCode.trim()) {
+          this.mermaidCode = newCode;
+          this.renderReactFlow();
         }
       }
     } catch (error) {
       console.error('Error refreshing mermaid diagram:', error);
     }
-  }
-
-  // Check if two mermaid codes are similar (handles minor whitespace differences)
-  private isSimilar(code1: string, code2: string): boolean {
-    const normalize = (code: string) => code.replace(/\s+/g, ' ').trim();
-    return normalize(code1) === normalize(code2);
   }
 
   toggleAutoRefresh() {
