@@ -7,6 +7,8 @@ import MermaidReactFlowPlugin from './main';
 import { hashMermaidCode, applySavedPositions, extractPositions } from './positionStorage';
 import { Toolbar } from './Toolbar';
 import { Theme, getThemeColors } from './themeManager';
+import { parseMetadata } from './metadataParser';
+import { MetadataPanel } from './MetadataPanel';
 
 interface ReactFlowDiagramWrapperProps {
   mermaidCode: string;
@@ -30,10 +32,15 @@ export function ReactFlowDiagramWrapper({
   const [flowData, setFlowData] = useState<ReactFlowData>({ nodes: [], edges: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const diagramHashRef = useRef<string>('');
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const originalNodesRef = useRef<Node[]>([]);
   const themeColors = getThemeColors(theme);
+
+  // Parse metadata from mermaid code
+  const metadata = parseMetadata(mermaidCode);
+  const selectedNodeMetadata = selectedNodeId ? metadata.nodes.get(selectedNodeId) : undefined;
 
   useEffect(() => {
     if (mermaidCode) {
@@ -89,6 +96,10 @@ export function ReactFlowDiagramWrapper({
     setFlowData(prev => ({ ...prev, nodes }));
     savePositions(nodes);
   }, [savePositions]);
+
+  const handleNodeClick = useCallback((nodeId: string) => {
+    setSelectedNodeId(prev => prev === nodeId ? null : nodeId);
+  }, []);
 
   const handleEdgesChange = useCallback((edges: Edge[]) => {
     setFlowData(prev => ({ ...prev, edges }));
@@ -186,11 +197,17 @@ export function ReactFlowDiagramWrapper({
         onToggleAutoRefresh={onToggleAutoRefresh}
         sourceFilePath={sourceFilePath}
       />
+      <MetadataPanel
+        diagramMetadata={metadata.diagram}
+        selectedNodeMetadata={selectedNodeMetadata}
+        theme={theme}
+      />
       <FlowDiagram
         nodes={flowData.nodes}
         edges={flowData.edges}
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
+        onNodeClick={handleNodeClick}
         theme={theme}
         fitView={!isSequenceDiagram}
       />

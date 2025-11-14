@@ -249,24 +249,8 @@ export default class MermaidReactFlowPlugin extends Plugin {
       const activeFile = this.app.workspace.getActiveFile();
       const sourcePath = filePathAttr || activeFile?.path || '';
 
-      // Calculate block index in reading mode
-      const allCodeBlocks = document.querySelectorAll('code.language-mermaid');
-      let blockIndex = 0;
-      for (let i = 0; i < allCodeBlocks.length; i++) {
-        const code = allCodeBlocks[i].textContent?.trim() || '';
-        const isSupported = code.startsWith('graph ') ||
-                           code.startsWith('flowchart ') ||
-                           code.startsWith('sequenceDiagram') ||
-                           /^graph\s+(TD|TB|BT|RL|LR)/i.test(code) ||
-                           /^flowchart\s+(TD|TB|BT|RL|LR)/i.test(code);
-
-        if (allCodeBlocks[i] === codeEl) {
-          break;
-        }
-        if (isSupported) {
-          blockIndex++;
-        }
-      }
+      // Calculate the actual index of this block within the file by matching content
+      const actualBlockIndex = await this.findBlockIndexInFile(source);
 
       await this.activateView();
 
@@ -274,7 +258,7 @@ export default class MermaidReactFlowPlugin extends Plugin {
       if (leaves.length > 0) {
         const view = leaves[0].view;
         if (view instanceof MermaidReactFlowView) {
-          view.setMermaidCode(source, sourcePath, blockIndex);
+          view.setMermaidCode(source, sourcePath, actualBlockIndex);
         }
       }
     });
@@ -359,13 +343,28 @@ export default class MermaidReactFlowPlugin extends Plugin {
       const activeFile = this.app.workspace.getActiveFile();
       const sourcePath = activeFile?.path || '';
 
-      // Extract mermaid source from file when button is clicked
-      const source = await this.extractMermaidFromFile(blockIndex);
+      // Instead of using DOM index, extract the actual mermaid code from the block
+      // This is more reliable than trying to match DOM index to file index
+      let source: string | null = null;
+
+      // Try to get the code directly from the block's text content
+      const codeBlock = block.querySelector('code') || block.querySelector('.language-mermaid');
+      if (codeBlock) {
+        source = codeBlock.textContent?.trim() || null;
+      }
+
+      // Fallback: extract from file using the actual code content to find the right block
+      if (!source) {
+        source = await this.extractMermaidFromFile(blockIndex);
+      }
 
       if (!source) {
         console.error('ReactFlow: Could not extract mermaid source from file');
         return;
       }
+
+      // Calculate the actual index of this block within the file
+      const actualBlockIndex = await this.findBlockIndexInFile(source);
 
       await this.activateView();
 
@@ -373,7 +372,7 @@ export default class MermaidReactFlowPlugin extends Plugin {
       if (leaves.length > 0) {
         const view = leaves[0].view;
         if (view instanceof MermaidReactFlowView) {
-          view.setMermaidCode(source, sourcePath, blockIndex);
+          view.setMermaidCode(source, sourcePath, actualBlockIndex);
         }
       }
     });
@@ -401,11 +400,34 @@ export default class MermaidReactFlowPlugin extends Plugin {
       // Filter to only supported diagrams (flowcharts and sequence diagrams)
       const supportedDiagrams = matches.filter(match => {
         const code = match[1].trim();
-        return code.startsWith('graph ') ||
-               code.startsWith('flowchart ') ||
-               code.startsWith('sequenceDiagram') ||
-               /^graph\s+(TD|TB|BT|RL|LR)/i.test(code) ||
-               /^flowchart\s+(TD|TB|BT|RL|LR)/i.test(code);
+
+        // Check if it's a supported diagram type
+        // Need to skip metadata comments and find the actual diagram declaration
+        const lines = code.split('\n');
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+
+          // Skip comment lines
+          if (trimmedLine.startsWith('%%')) {
+            continue;
+          }
+
+          // Check for diagram type in first non-comment line
+          if (trimmedLine.startsWith('graph ') ||
+              trimmedLine.startsWith('flowchart ') ||
+              trimmedLine.startsWith('sequenceDiagram') ||
+              /^graph\s+(TD|TB|BT|RL|LR)/i.test(trimmedLine) ||
+              /^flowchart\s+(TD|TB|BT|RL|LR)/i.test(trimmedLine)) {
+            return true;
+          }
+
+          // If we hit a non-comment, non-empty line that's not a diagram type, stop
+          if (trimmedLine.length > 0) {
+            break;
+          }
+        }
+
+        return false;
       });
 
       if (blockIndex >= 0 && blockIndex < supportedDiagrams.length) {
@@ -417,6 +439,72 @@ export default class MermaidReactFlowPlugin extends Plugin {
       console.error('ReactFlow: Error reading file:', error);
       return null;
     }
+  }
+
+  private async findBlockIndexInFile(mermaidCode: string): Promise<number> {
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile) return 0;
+
+    try {
+      const content = await this.app.vault.read(activeFile);
+      const mermaidRegex = /```mermaid\n([\s\S]*?)```/g;
+      const matches = [...content.matchAll(mermaidRegex)];
+
+      // Filter to only supported diagrams
+      const supportedDiagrams = matches.filter(match => {
+        const code = match[1].trim();
+
+        // Check if it's a supported diagram type
+        // Need to skip metadata comments and find the actual diagram declaration
+        const lines = code.split('\n');
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+
+          // Skip comment lines
+          if (trimmedLine.startsWith('%%')) {
+            continue;
+          }
+
+          // Check for diagram type in first non-comment line
+          if (trimmedLine.startsWith('graph ') ||
+              trimmedLine.startsWith('flowchart ') ||
+              trimmedLine.startsWith('sequenceDiagram') ||
+              /^graph\s+(TD|TB|BT|RL|LR)/i.test(trimmedLine) ||
+              /^flowchart\s+(TD|TB|BT|RL|LR)/i.test(trimmedLine)) {
+            return true;
+          }
+
+          // If we hit a non-comment, non-empty line that's not a diagram type, stop
+          if (trimmedLine.length > 0) {
+            break;
+          }
+        }
+
+        return false;
+      });
+
+      // Find the index by matching the content
+      const normalizedInput = this.normalizeMermaidCode(mermaidCode);
+      for (let i = 0; i < supportedDiagrams.length; i++) {
+        const blockCode = supportedDiagrams[i][1].trim();
+        const normalizedBlock = this.normalizeMermaidCode(blockCode);
+
+        if (normalizedInput === normalizedBlock) {
+          return i;
+        }
+      }
+
+      // If exact match not found, return 0 as default
+      return 0;
+    } catch (error) {
+      console.error('ReactFlow: Error finding block index:', error);
+      return 0;
+    }
+  }
+
+  private normalizeMermaidCode(code: string): string {
+    // Normalize whitespace for comparison
+    return code.replace(/\s+/g, ' ').trim();
   }
 
   onunload() {

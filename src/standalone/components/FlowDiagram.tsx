@@ -23,6 +23,7 @@ interface FlowDiagramProps {
   edges: Edge[];
   onNodesChange?: (nodes: Node[]) => void;
   onEdgesChange?: (edges: Edge[]) => void;
+  onNodeClick?: (nodeId: string) => void;
   theme?: 'light' | 'dark';
   fitView?: boolean;
 }
@@ -32,6 +33,7 @@ export function FlowDiagram({
   edges: initialEdges,
   onNodesChange: onNodesChangeCallback,
   onEdgesChange: onEdgesChangeCallback,
+  onNodeClick: onNodeClickCallback,
   theme = 'light',
   fitView = true
 }: FlowDiagramProps) {
@@ -80,6 +82,11 @@ export function FlowDiagram({
     },
     [edges, onEdgesChangeCallback]
   );
+
+  const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    // Call the callback if provided
+    onNodeClickCallback?.(node.id);
+  }, [onNodeClickCallback]);
 
   const onNodeDoubleClick = useCallback((_event: React.MouseEvent, node: Node) => {
     // Only show editor for non-group nodes
@@ -131,6 +138,7 @@ export function FlowDiagram({
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onNodeClick={onNodeClick}
           onNodeDoubleClick={onNodeDoubleClick}
           nodeTypes={nodeTypes}
           fitView={fitView}
