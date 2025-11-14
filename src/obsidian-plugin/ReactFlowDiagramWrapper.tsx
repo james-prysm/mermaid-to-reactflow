@@ -208,6 +208,7 @@ export function ReactFlowDiagramWrapper({
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onNodeClick={handleNodeClick}
+        selectedNodeId={selectedNodeId || undefined}
         theme={theme}
         fitView={!isSequenceDiagram}
       />
