@@ -1,4 +1,3 @@
-import React from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 
 export function CustomNode({ data, isConnectable }: NodeProps) {

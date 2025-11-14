@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { Node, Edge, MarkerType, Position } from 'reactflow';
 import mermaid from 'mermaid';
 import dagre from 'dagre';
@@ -21,6 +22,13 @@ interface MermaidNode {
   label: string;
   shape: string;
   subgraph?: string;
+  metadata?: {
+    source?: string;
+    target?: string;
+    participantOrder?: number;
+    lifelineIndex?: number;
+    participantId?: string;
+  };
 }
 
 interface MermaidEdge {
@@ -64,12 +72,143 @@ function getNodeShape(nodeDefinition: string): string {
   return 'rect';
 }
 
+interface SequenceMessage {
+  source: string;
+  target: string;
+  label: string;
+  arrowType: string;
+  index: number;
+}
+
+function parseSequenceDiagram(code: string): { nodes: MermaidNode[], edges: MermaidEdge[] } {
+  const nodes: MermaidNode[] = [];
+  const edges: MermaidEdge[] = [];
+  const participantOrder: string[] = []; // Array to maintain strict order
+  const participantLabels = new Map<string, string>();
+  const messages: SequenceMessage[] = [];
+
+  const lines = code.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('%%'));
+
+  // First pass: extract participants in order
+  for (const line of lines) {
+    if (line.toLowerCase().startsWith('participant ')) {
+      const match = line.match(/participant\s+(\w+)(?:\s+as\s+(.+))?/i);
+      if (match) {
+        const id = match[1];
+        const label = match[2] || id;
+        if (!participantLabels.has(id)) {
+          participantOrder.push(id);
+          participantLabels.set(id, label);
+        }
+      }
+    }
+  }
+
+  // Second pass: extract messages and auto-discover participants
+  let messageIndex = 0;
+  for (const line of lines) {
+    // Match various arrow types: ->>, -->, -), ->
+    const arrowMatch = line.match(/(\w+)\s*(--?>>?|-\)|->>?)\s*(\w+)\s*:\s*(.+)/);
+    if (arrowMatch) {
+      const source = arrowMatch[1];
+      const arrowType = arrowMatch[2];
+      const target = arrowMatch[3];
+      const message = arrowMatch[4];
+
+      // Auto-add participants if not explicitly declared
+      if (!participantLabels.has(source)) {
+        participantOrder.push(source);
+        participantLabels.set(source, source);
+      }
+      if (!participantLabels.has(target)) {
+        participantOrder.push(target);
+        participantLabels.set(target, target);
+      }
+
+      messages.push({
+        source,
+        target,
+        label: message,
+        arrowType,
+        index: messageIndex++
+      });
+    }
+  }
+
+  // Create header nodes for each participant in order
+  participantOrder.forEach((id, order) => {
+    const label = participantLabels.get(id) || id;
+    nodes.push({
+      id: `header_${id}`,
+      label,
+      shape: 'rect',
+      metadata: {
+        participantOrder: order,
+        participantId: id
+      }
+    });
+  });
+
+  // Create lifeline point nodes for each participant at each message index
+  const numPoints = messages.length + 2; // +2 for top and bottom
+  participantOrder.forEach((id, order) => {
+    for (let i = 0; i < numPoints; i++) {
+      nodes.push({
+        id: `lifeline_${id}_${i}`,
+        label: '',
+        shape: 'rect',
+        metadata: {
+          participantOrder: order,
+          lifelineIndex: i
+        }
+      });
+
+      // Connect consecutive lifeline points
+      if (i > 0) {
+        edges.push({
+          source: `lifeline_${id}_${i - 1}`,
+          target: `lifeline_${id}_${i}`,
+          type: 'default'
+        });
+      }
+    }
+
+    // Connect header to first lifeline point
+    edges.push({
+      source: `header_${id}`,
+      target: `lifeline_${id}_0`,
+      type: 'default'
+    });
+  });
+
+  // Create edges for messages
+  messages.forEach((msg) => {
+    const edgeType = msg.arrowType.includes('--') ? 'dashed' : 'default';
+    const lifelineIndex = msg.index + 1; // +1 because index 0 is the top point
+
+    edges.push({
+      source: `lifeline_${msg.source}_${lifelineIndex}`,
+      target: `lifeline_${msg.target}_${lifelineIndex}`,
+      label: msg.label,
+      type: edgeType
+    });
+  });
+
+  return { nodes, edges };
+}
+
 function parseMermaidCode(code: string): { nodes: MermaidNode[], edges: MermaidEdge[], subgraphs: SubgraphInfo[] } {
+  // Check if this is a sequence diagram
+  if (code.trim().startsWith('sequenceDiagram')) {
+    const { nodes, edges } = parseSequenceDiagram(code);
+    return { nodes, edges, subgraphs: [] };
+  }
+
   const nodes: MermaidNode[] = [];
   const edges: MermaidEdge[] = [];
   const subgraphs: SubgraphInfo[] = [];
   const nodeMap = new Map<string, MermaidNode>();
-  
+
   // Remove comments and clean up the code
   const cleanCode = code
     .split('\n')
@@ -408,7 +547,7 @@ function createReactFlowElements(
   const reactFlowNodes: Node[] = [];
   
   // Color schemes
-  const getNodeColors = (shape: string, index: number) => {
+  const getNodeColors = (shape: string) => {
     const colorSchemes = {
       rect: ['#E3F2FD', '#1976D2'], // Blue
       diamond: ['#FFF3E0', '#F57C00'], // Orange
@@ -470,9 +609,8 @@ function createReactFlowElements(
   });
   
   // Add nodes
-  let nodeIndex = 0;
   nodes.forEach(node => {
-    const colors = getNodeColors(node.shape, nodeIndex++);
+    const colors = getNodeColors(node.shape);
     
     let nodeStyle = {
       backgroundColor: colors.backgroundColor,
@@ -549,15 +687,15 @@ function createReactFlowElements(
   const reactFlowEdges: Edge[] = edges.map((edge, index) => {
     const edgeColors = ['#1976D2', '#388E3C', '#F57C00', '#7B1FA2', '#C2185B'];
     const edgeColor = edgeColors[index % edgeColors.length];
-    
-    let edgeStyle = {
+
+    let edgeStyle: React.CSSProperties = {
       stroke: edgeColor,
       strokeWidth: 2,
     };
-    
+
     let edgeType = 'smoothstep';
     let animated = false;
-    
+
     // Style edges based on type
     switch (edge.type) {
       case '-->':
@@ -609,13 +747,162 @@ function createReactFlowElements(
 }
 
 // Main layout function using the three-phase approach
+function layoutSequenceDiagram(nodes: MermaidNode[], edges: MermaidEdge[]): { nodes: Node[], edges: Edge[] } {
+  // Extract headers and lifeline points
+  const headerNodes: MermaidNode[] = [];
+  const lifelineNodes: MermaidNode[] = [];
+
+  nodes.forEach(node => {
+    if (node.id.startsWith('header_')) {
+      headerNodes.push(node);
+    } else if (node.id.startsWith('lifeline_')) {
+      lifelineNodes.push(node);
+    }
+  });
+
+  // Sort headers by participant order
+  headerNodes.sort((a, b) => (a.metadata?.participantOrder ?? 0) - (b.metadata?.participantOrder ?? 0));
+
+  // Layout constants
+  const COLUMN_WIDTH = 300;
+  const HEADER_Y = 50;
+  const LIFELINE_POINT_SPACING = 100;
+  const LIFELINE_START_Y = 150;
+
+  const reactFlowNodes: Node[] = [];
+  const reactFlowEdges: Edge[] = [];
+
+  // Color palette for participants
+  const participantColors = [
+    { bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', text: '#ffffff' }, // Purple
+    { bg: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', text: '#ffffff' }, // Pink-Red
+    { bg: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', text: '#ffffff' }, // Blue
+    { bg: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', text: '#ffffff' }, // Green-Cyan
+    { bg: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', text: '#ffffff' }, // Pink-Yellow
+  ];
+
+  // Position header nodes - use participantOrder for consistent positioning
+  headerNodes.forEach((header) => {
+    const participantOrder = header.metadata?.participantOrder ?? 0;
+    const colorScheme = participantColors[participantOrder % participantColors.length];
+
+    reactFlowNodes.push({
+      id: header.id,
+      type: 'custom',
+      data: {
+        label: header.label,
+        shape: 'rect'
+      },
+      position: { x: participantOrder * COLUMN_WIDTH, y: HEADER_Y },
+      style: {
+        background: colorScheme.bg,
+        color: colorScheme.text,
+        border: 'none',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+        fontWeight: 600,
+        padding: '12px 20px'
+      }
+    });
+  });
+
+  // Position lifeline point nodes
+  lifelineNodes.forEach((lifeline) => {
+    const participantOrder = lifeline.metadata?.participantOrder ?? 0;
+    const lifelineIndex = lifeline.metadata?.lifelineIndex ?? 0;
+
+    const xPosition = participantOrder * COLUMN_WIDTH;
+    const yPosition = LIFELINE_START_Y + (lifelineIndex * LIFELINE_POINT_SPACING);
+
+    reactFlowNodes.push({
+      id: lifeline.id,
+      type: 'custom',
+      data: {
+        label: '',
+        shape: 'rect'
+      },
+      position: { x: xPosition, y: yPosition },
+      style: {
+        opacity: 0.2,
+        width: 12,
+        height: 12,
+        minWidth: 12,
+        minHeight: 12,
+        background: '#94a3b8',
+        borderRadius: '50%'
+      }
+    });
+  });
+
+  // Create edges
+  edges.forEach((edge, index) => {
+    const edgeStyle = edge.type === 'dashed' ? 'dashed' : 'default';
+
+    // Determine edge type based on whether it's a lifeline connection or message
+    let edgeType = 'smoothstep';
+    let edgeColor = '#94a3b8';
+    let strokeWidth = 2;
+    let isAnimated = false;
+
+    // Lifeline connections (vertical) - make them visible but subtle
+    if (edge.source.includes('lifeline_') && edge.target.includes('lifeline_') && !edge.label) {
+      edgeType = 'straight';
+      edgeColor = '#cbd5e1';
+      strokeWidth = 2;
+    }
+    // Header to lifeline connection
+    else if (edge.source.includes('header_')) {
+      edgeType = 'straight';
+      edgeColor = '#cbd5e1';
+      strokeWidth = 2;
+    }
+    // Message arrows - make them prominent and animated
+    else if (edge.label) {
+      edgeType = 'straight';
+      edgeColor = '#3b82f6';
+      strokeWidth = 3;
+      isAnimated = true;
+    }
+
+    reactFlowEdges.push({
+      id: `edge-${index}`,
+      source: edge.source,
+      target: edge.target,
+      label: edge.label,
+      type: edgeType,
+      animated: isAnimated,
+      style: {
+        stroke: edgeColor,
+        strokeWidth,
+        ...(edgeStyle === 'dashed' ? { strokeDasharray: '8,8' } : {})
+      },
+      labelStyle: edge.label ? {
+        fill: '#1e293b',
+        fontWeight: 500,
+        fontSize: 12
+      } : undefined,
+      labelBgStyle: edge.label ? {
+        fill: '#ffffff',
+        fillOpacity: 0.9
+      } : undefined,
+      markerEnd: edge.label ? {
+        type: MarkerType.ArrowClosed,
+        color: edgeColor,
+        width: 20,
+        height: 20
+      } : undefined,
+    });
+  });
+
+  return { nodes: reactFlowNodes, edges: reactFlowEdges };
+}
+
 function layoutGraph(nodes: MermaidNode[], edges: MermaidEdge[], subgraphs: SubgraphInfo[]): { nodes: Node[], edges: Edge[] } {
   // Phase 1: Layout each subgraph independently
   const subgraphLayouts = layoutSubgraphs(nodes, edges, subgraphs);
-  
+
   // Phase 2: Layout meta-graph (containers + standalone nodes)
   const { subgraphPositions, standalonePositions } = layoutMetaGraph(nodes, edges, subgraphLayouts);
-  
+
   // Phase 3: Combine layouts and create React Flow elements
   return createReactFlowElements(nodes, edges, subgraphs, subgraphLayouts, subgraphPositions, standalonePositions);
 }
@@ -624,12 +911,18 @@ export async function convertMermaidToReactFlow(mermaidCode: string): Promise<Re
   try {
     // Parse the Mermaid code
     const { nodes, edges, subgraphs } = parseMermaidCode(mermaidCode);
-    
+
     if (nodes.length === 0) {
       console.warn('No nodes found in Mermaid diagram');
       return { nodes: [], edges: [] };
     }
-    
+
+    // Check if this is a sequence diagram and use special layout
+    const isSequenceDiagram = mermaidCode.trim().startsWith('sequenceDiagram');
+    if (isSequenceDiagram) {
+      return layoutSequenceDiagram(nodes, edges);
+    }
+
     // Layout the graph and return
     return layoutGraph(nodes, edges, subgraphs);
   } catch (error) {

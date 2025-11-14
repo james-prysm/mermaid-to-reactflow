@@ -1,0 +1,404 @@
+/* Obsidian Plugin Styles */
+
+.mermaid-reactflow-view {
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+.mermaid-reactflow-button-container {
+  margin-bottom: 0.5em;
+  margin-top: 0.5em;
+  text-align: left;
+  display: block;
+  user-select: none;
+}
+
+/* Ensure buttons are visible in both reading and edit modes */
+.markdown-preview-view .mermaid-reactflow-button-container,
+.markdown-source-view.mod-cm6 .mermaid-reactflow-button-container {
+  display: block !important;
+  visibility: visible !important;
+}
+
+.mermaid-reactflow-button {
+  padding: 0.4em 0.8em;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+  opacity: 0.8;
+  user-select: none;
+  pointer-events: auto;
+}
+
+/* Prevent button from being affected by contenteditable */
+.mermaid-reactflow-button[contenteditable="false"],
+.mermaid-reactflow-button-container[contenteditable="false"] {
+  -webkit-user-modify: read-only;
+  user-select: none;
+}
+
+.mermaid-reactflow-button:hover {
+  background: var(--interactive-accent-hover);
+  opacity: 1;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.mermaid-reactflow-button:active {
+  transform: translateY(0px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* React Flow styles - Light Theme */
+.flow-diagram-container.theme-light .react-flow {
+  background: #ffffff;
+}
+
+.flow-diagram-container.theme-light .react-flow__background {
+  background: #ffffff;
+}
+
+.flow-diagram-container.theme-light .react-flow__node {
+  font-family: var(--font-interface);
+  color: #000000;
+}
+
+.flow-diagram-container.theme-light .react-flow__edge-path {
+  stroke: #333333;
+}
+
+.flow-diagram-container.theme-light .react-flow__controls button {
+  background: #ffffff;
+  border: 1px solid #cccccc;
+  color: #333333;
+}
+
+.flow-diagram-container.theme-light .react-flow__controls button:hover {
+  background: #f5f5f5;
+}
+
+.flow-diagram-container.theme-light .react-flow__minimap {
+  background: #f9f9f9;
+  border: 1px solid #cccccc;
+}
+
+.flow-diagram-container.theme-light .react-flow__edge-text {
+  fill: #1e293b;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.flow-diagram-container.theme-light .react-flow__edge-textbg {
+  fill: #ffffff;
+  fill-opacity: 0.95;
+}
+
+.flow-diagram-container.theme-light .react-flow__node-default,
+.flow-diagram-container.theme-light .react-flow__node-custom {
+  background: #ffffff;
+  border-color: #333333;
+  color: #000000;
+}
+
+/* React Flow styles - Dark Theme */
+.flow-diagram-container.theme-dark .react-flow {
+  background: #1e1e1e;
+}
+
+.flow-diagram-container.theme-dark .react-flow__background {
+  background: #1e1e1e;
+}
+
+.flow-diagram-container.theme-dark .react-flow__node {
+  font-family: var(--font-interface);
+  /* Don't set color here - let node labels handle it */
+}
+
+.flow-diagram-container.theme-dark .react-flow__edge-path {
+  stroke: #666666;
+}
+
+.flow-diagram-container.theme-dark .react-flow__controls button {
+  background: #2d2d2d;
+  border: 1px solid #4d4d4d;
+  color: #e0e0e0;
+}
+
+.flow-diagram-container.theme-dark .react-flow__controls button:hover {
+  background: #3d3d3d;
+}
+
+.flow-diagram-container.theme-dark .react-flow__minimap {
+  background: #252525;
+  border: 1px solid #4d4d4d;
+}
+
+.flow-diagram-container.theme-dark .react-flow__edge-text {
+  fill: #1e293b;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.flow-diagram-container.theme-dark .react-flow__edge-textbg {
+  fill: #ffffff;
+  fill-opacity: 0.95;
+}
+
+/* Don't override node backgrounds in dark mode - nodes have their own pastel colors */
+.flow-diagram-container.theme-dark .react-flow__node-default,
+.flow-diagram-container.theme-dark .react-flow__node-custom {
+  /* Keep node backgrounds from inline styles (pastel gradients) */
+  /* Text color handled by .node-label */
+}
+
+/* Toolbar Styles - Light Theme */
+.mermaid-reactflow-toolbar.theme-light {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+  background: #ffffff;
+  border: 1px solid #cccccc;
+  border-radius: 6px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Toolbar Styles - Dark Theme */
+.mermaid-reactflow-toolbar.theme-dark {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+  background: #2d2d2d;
+  border: 1px solid #4d4d4d;
+  border-radius: 6px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.toolbar-section {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Toolbar buttons - Light */
+.mermaid-reactflow-toolbar.theme-light .toolbar-button {
+  padding: 6px 12px;
+  background: #ffffff;
+  color: #333333;
+  border: 1px solid #cccccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.mermaid-reactflow-toolbar.theme-light .toolbar-button:hover:not(:disabled) {
+  background: #f5f5f5;
+  border-color: #999999;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mermaid-reactflow-toolbar.theme-light .toolbar-button:active:not(:disabled) {
+  background: #e8e8e8;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Toolbar buttons - Dark */
+.mermaid-reactflow-toolbar.theme-dark .toolbar-button {
+  padding: 6px 12px;
+  background: #3d3d3d;
+  color: #e0e0e0;
+  border: 1px solid #4d4d4d;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.mermaid-reactflow-toolbar.theme-dark .toolbar-button:hover:not(:disabled) {
+  background: #4d4d4d;
+  border-color: #666666;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.mermaid-reactflow-toolbar.theme-dark .toolbar-button:active:not(:disabled) {
+  background: #333333;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.toolbar-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Toolbar info text */
+.mermaid-reactflow-toolbar.theme-light .toolbar-info {
+  font-size: 12px;
+  color: #666666;
+  font-style: italic;
+}
+
+.mermaid-reactflow-toolbar.theme-dark .toolbar-info {
+  font-size: 12px;
+  color: #999999;
+  font-style: italic;
+}
+
+/* Active toolbar button - Light */
+.mermaid-reactflow-toolbar.theme-light .toolbar-button.active {
+  background: #4CAF50;
+  color: #ffffff;
+  border-color: #45a049;
+}
+
+.mermaid-reactflow-toolbar.theme-light .toolbar-button.active:hover:not(:disabled) {
+  background: #45a049;
+  border-color: #3d8b40;
+}
+
+/* Active toolbar button - Dark */
+.mermaid-reactflow-toolbar.theme-dark .toolbar-button.active {
+  background: #4CAF50;
+  color: #ffffff;
+  border-color: #45a049;
+}
+
+.mermaid-reactflow-toolbar.theme-dark .toolbar-button.active:hover:not(:disabled) {
+  background: #45a049;
+  border-color: #3d8b40;
+}
+
+/* Auto-refresh indicator */
+.auto-refresh-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+
+/* Subgraph/Container Styles - Light Theme */
+.flow-diagram-container.theme-light .subgraph-title {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: #1e293b !important;
+  padding: 8px 12px !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Subgraph/Container Styles - Dark Theme */
+.flow-diagram-container.theme-dark .subgraph-title {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  background: rgba(30, 41, 59, 0.95) !important;
+  color: #ffffff !important;
+  padding: 8px 12px !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid #4d4d4d !important;
+}
+
+/* Custom Node Styles - Better padding for readability */
+.mermaid-reactflow-view .react-flow__node-custom .custom-node,
+.mermaid-reactflow-view .custom-node {
+  padding: 16px 20px !important;
+  min-width: 100px;
+  box-sizing: border-box;
+  /* Ensure text is dark on light node backgrounds */
+  color: #2D3748 !important;
+}
+
+.mermaid-reactflow-view .node-content {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Node labels - Light theme */
+.flow-diagram-container.theme-light .node-label {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 4px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  max-width: 200px;
+  color: #2D3748 !important;
+}
+
+.flow-diagram-container.theme-light .node-description {
+  font-size: 11px;
+  color: #718096 !important;
+  margin-top: 4px;
+  line-height: 1.3;
+  max-width: 180px;
+  word-wrap: break-word;
+  opacity: 0.9;
+}
+
+/* Node labels - Dark theme - Keep text dark because nodes have light backgrounds */
+.flow-diagram-container.theme-dark .node-label {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 4px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  max-width: 200px;
+  color: #2D3748 !important;
+}
+
+.flow-diagram-container.theme-dark .node-description {
+  font-size: 11px;
+  color: #718096 !important;
+  margin-top: 4px;
+  line-height: 1.3;
+  max-width: 180px;
+  word-wrap: break-word;
+  opacity: 0.9;
+}
+
+/* Shape-specific adjustments */
+.mermaid-reactflow-view .react-flow__node-custom .custom-node.shape-circle,
+.mermaid-reactflow-view .custom-node.shape-circle {
+  padding: 20px !important;
+}
+
+.mermaid-reactflow-view .react-flow__node-custom .custom-node.shape-diamond,
+.mermaid-reactflow-view .custom-node.shape-diamond {
+  padding: 24px !important;
+}
+
+.mermaid-reactflow-view .react-flow__node-custom .custom-node.shape-stadium,
+.mermaid-reactflow-view .custom-node.shape-stadium {
+  padding: 16px 24px !important;
+}
+
+/* Ensure all custom nodes have proper padding regardless of parent */
+.react-flow__node-custom {
+  padding: 0 !important;
+}
+
+.react-flow__node-custom .custom-node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+

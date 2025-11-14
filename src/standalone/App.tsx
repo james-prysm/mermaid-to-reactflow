@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FlowDiagram } from './components/FlowDiagram';
-import { extractMermaidDiagrams, MermaidDiagram } from './utils/mermaidParser';
-import { convertMermaidToReactFlow, ReactFlowData } from './utils/mermaidToReactFlow';
-import { saveDiagram, getAllDiagrams, deleteDiagram, exportToFile, SavedDiagram, getDiagram, updateDiagram } from './utils/diagramStorage';
+import { extractMermaidDiagrams, MermaidDiagram } from '../core/mermaidParser';
+import { convertMermaidToReactFlow, ReactFlowData } from '../core/mermaidToReactFlow';
+import { saveDiagram, getAllDiagrams, deleteDiagram, exportToFile, SavedDiagram, getDiagram, updateDiagram } from '../core/diagramStorage';
 import { Node, Edge } from 'reactflow';
 import './App.css';
 

@@ -1,12 +1,10 @@
-import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import { useCallback, useState, useEffect, useMemo } from 'react';
 import ReactFlow, {
   Node,
   Edge,
   Controls,
   Background,
   MiniMap,
-  useNodesState,
-  useEdgesState,
   addEdge,
   Connection,
   BackgroundVariant,
@@ -14,7 +12,6 @@ import ReactFlow, {
   applyEdgeChanges,
   NodeChange,
   EdgeChange,
-  NodeDragHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { CustomNode } from './CustomNode';
@@ -26,14 +23,19 @@ interface FlowDiagramProps {
   edges: Edge[];
   onNodesChange?: (nodes: Node[]) => void;
   onEdgesChange?: (edges: Edge[]) => void;
+  theme?: 'light' | 'dark';
+  fitView?: boolean;
 }
 
-export function FlowDiagram({ 
-  nodes: initialNodes, 
+export function FlowDiagram({
+  nodes: initialNodes,
   edges: initialEdges,
   onNodesChange: onNodesChangeCallback,
-  onEdgesChange: onEdgesChangeCallback
+  onEdgesChange: onEdgesChangeCallback,
+  theme = 'light',
+  fitView = true
 }: FlowDiagramProps) {
+  const isDark = theme === 'dark';
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -79,7 +81,7 @@ export function FlowDiagram({
     [edges, onEdgesChangeCallback]
   );
 
-  const onNodeDoubleClick = useCallback((event: React.MouseEvent, node: Node) => {
+  const onNodeDoubleClick = useCallback((_event: React.MouseEvent, node: Node) => {
     // Only show editor for non-group nodes
     if (node.type !== 'group') {
       setSelectedNode(node);
@@ -122,7 +124,7 @@ export function FlowDiagram({
 
   return (
     <>
-      <div style={{ width: '100%', height: '100%' }}>
+      <div style={{ width: '100%', height: '100%' }} className={`flow-diagram-container ${isDark ? 'theme-dark' : 'theme-light'}`}>
         <ReactFlow
           nodes={nodesWithEditCallback}
           edges={edges}
@@ -131,7 +133,8 @@ export function FlowDiagram({
           onConnect={onConnect}
           onNodeDoubleClick={onNodeDoubleClick}
           nodeTypes={nodeTypes}
-          fitView
+          fitView={fitView}
+          defaultViewport={{ x: 0, y: 0, zoom: 1 }}
           deleteKeyCode={['Delete', 'Backspace']}
         >
           <Controls />

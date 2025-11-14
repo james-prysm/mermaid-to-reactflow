@@ -1,0 +1,10 @@
+{
+  "id": "mermaid-reactflow",
+  "name": "Mermaid React Flow",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Convert Mermaid diagrams to interactive React Flow visualizations",
+  "author": "Your Name",
+  "authorUrl": "https://github.com/yourusername",
+  "isDesktopOnly": false
+}

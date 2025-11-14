@@ -5,13 +5,17 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build:standalone": "tsc && vite build",
+    "build:plugin": "tsc && vite build --config vite.config.plugin.ts",
+    "build:all": "npm run build:standalone && npm run build:plugin",
+    "preview": "vite preview",
+    "dev:plugin": "vite build --config vite.config.plugin.ts --watch"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
-  "description": "",
+  "description": "Convert Mermaid diagrams to interactive React Flow visualizations - Available as standalone app or Obsidian plugin",
   "dependencies": {
     "@types/dagre": "^0.7.53",
     "@types/react": "^19.1.8",
@@ -24,5 +28,12 @@
     "reactflow": "^11.11.4",
     "typescript": "^5.8.3",
     "vite": "^7.0.0"
+  },
+  "devDependencies": {
+    "@codemirror/language": "^6.11.3",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.38.6",
+    "@types/node": "^20.11.5",
+    "obsidian": "^1.5.7"
   }
 }
